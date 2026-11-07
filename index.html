@@ -15,7 +15,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#000000">
-<title>A question for you</title>
+<title>Happy birthday, my love</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 92'%3E%3Cpath fill='%23e0193a' d='M50 88 C22 66 3 48 3 28 C3 13 14 4 27 4 C37 4 45 9 50 17 C55 9 63 4 73 4 C86 4 97 13 97 28 C97 48 78 66 50 88 Z'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&family=Caveat:wght@500;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1438,7 +1438,7 @@ html.gated, html.gated body{ overflow:hidden; }
 
     // THE SONG that plays with the flowers. Upload the song file to your repo
     // (for example a folder called  music ) and put its path here. Leave empty for no music.
-    musicSrc: "harvey.mp3",
+    musicSrc: "music/harvey.mp3",
     musicVolume: 0.6,   // 0 to 1
 
     // WHERE HER ANSWERS GO so you can read them on your own phone.
@@ -2372,10 +2372,19 @@ html.gated, html.gated body{ overflow:hidden; }
   /* --- music --- */
   var bdAudio = $("#bdAudio"), bdMusicBtn = $("#bdMusic"), bdMusicOn = false, bdFade = 0, bdBroken = false;
   var bdUserOff = false;
-  if (CONFIG.musicSrc){ bdAudio.preload = "auto"; bdAudio.src = CONFIG.musicSrc; bdAudio.addEventListener("error", function(){ bdBroken = true; bdMusicBtn.hidden = true; }); }
+  // the song is looked for at musicSrc, then in the music folder, then next to index.html
+  var SONGS = [CONFIG.musicSrc, "music/harvey.mp3", "harvey.mp3"].filter(function(x, i, a){ return x && a.indexOf(x) === i; }), songI = 0;
+  if (SONGS.length){
+    bdAudio.preload = "auto"; bdAudio.src = SONGS[0];
+    bdAudio.addEventListener("error", function(){
+      songI++;
+      if (songI < SONGS.length){ var wasWanted = bdMusicOn; bdAudio.src = SONGS[songI]; bdAudio.load(); if (wasWanted) bdPlay(); }
+      else { bdBroken = true; bdMusicBtn.hidden = true; }
+    });
+  }
   function bdMusicUI(on){ bdMusicOn = on; bdMusicBtn.setAttribute("aria-pressed", on ? "true" : "false"); $("#bdMusicTxt").textContent = on ? "Music on" : "Play music"; }
   function bdPlay(){
-    if (!CONFIG.musicSrc || bdBroken) return;
+    if (!SONGS.length || bdBroken) return;
     clearInterval(bdFade);
     try { bdAudio.volume = 0; } catch(e){}
     var p = bdAudio.play();
@@ -2383,28 +2392,33 @@ html.gated, html.gated body{ overflow:hidden; }
     bdFade = setInterval(function(){ n++; try { bdAudio.volume = target * Math.min(1, n / 50); } catch(e){} if (n >= 50) clearInterval(bdFade); }, 50);
     bdMusicBtn.hidden = false; bdMusicUI(true);
     if (p && p.catch) p.catch(function(e){
-      if (bdAudio.error || (e && e.name === "NotSupportedError")){ bdBroken = true; bdMusicBtn.hidden = true; return; }
+      if (bdAudio.error || (e && e.name === "NotSupportedError")) return;   // the error handler tries the next place
+
       bdMusicUI(false);
     });
   }
   bdMusicBtn.addEventListener("click", function(){ if (bdMusicOn){ bdAudio.pause(); bdMusicUI(false); bdUserOff = true; } else { bdUserOff = false; bdPlay(); } });
   // coming back later: browsers block sound until a click, so her first click anywhere starts the song again
   document.addEventListener("click", function(e){
-    if (state.screen !== "home" || !bdProg().bella || bdUserOff || bdBroken || !bdAudio.paused) return;
+    if (state.screen !== "home" || !bdProg().sunset || bdUserOff || bdBroken || !bdAudio.paused) return;
     if (e.target.closest && e.target.closest("#bdMusic")) return;
     bdPlay();
   }, true);
   // for the admin panel: is the song file really there?
   function musicCheck(v){
-    if (!CONFIG.musicSrc){ v.textContent = "No song set (musicSrc is empty in CONFIG)."; return; }
-    v.textContent = "Checking " + CONFIG.musicSrc + " ...";
-    var a = new Audio(), done = false;
-    function ok(){ if (done) return; done = true; v.textContent = "Found " + CONFIG.musicSrc + " - it will play after the third heart."; }
-    function bad(){ if (done) return; done = true; v.textContent = "NOT found: " + CONFIG.musicSrc + ". Upload the song there (the folder and file name must match exactly, including capital letters)."; }
-    a.addEventListener("canplay", ok); a.addEventListener("loadedmetadata", ok); a.addEventListener("error", bad);
-    a.preload = "auto"; a.src = CONFIG.musicSrc;
-    setTimeout(function(){ if (!done) v.textContent = "Still checking " + CONFIG.musicSrc + " (slow connection?)"; }, 6000);
+    if (!SONGS.length){ v.textContent = "No song set (musicSrc is empty in CONFIG)."; return; }
+    v.textContent = "Looking for the song ...";
+    var k = 0;
+    (function next(){
+      if (k >= SONGS.length){ v.textContent = "NOT found. Upload the song as music/harvey.mp3 or harvey.mp3 (next to index.html). Names must match exactly."; return; }
+      var src = SONGS[k++], a = new Audio(), done = false;
+      function ok(){ if (done) return; done = true; v.textContent = "Found " + src + " - it starts when the sunset begins."; }
+      function bad(){ if (done) return; done = true; next(); }
+      a.addEventListener("loadedmetadata", ok); a.addEventListener("canplay", ok); a.addEventListener("error", bad);
+      a.preload = "auto"; a.src = src;
+    })();
   }
+
 
   /* --- the letter: typed out in code characters that settle into words --- */
   var typer = { raf:0, done:true };
@@ -2475,7 +2489,7 @@ html.gated, html.gated body{ overflow:hidden; }
       } else {
         P.bella = Date.now(); save(); saveAnswers({ bdBellaAt:P.bella });
         bd.busy = false; bdHearts();
-        bdPlay(); showBella(false);
+        showBella(false);
       }
     });
   });
@@ -2490,6 +2504,9 @@ html.gated, html.gated body{ overflow:hidden; }
   $("#bdDone").addEventListener("click", function(){
     if (bd.kissT || bd.mode === "sunset") return;
     typeLetter(true);
+    if (SONGS.length && !bdBroken && bdAudio.paused){                       // browsers only allow sound after a click: unlock it now, silently
+      try { bdAudio.volume = 0; var up = bdAudio.play(); if (up && up.then) up.then(function(){ if (bd.mode !== "sunset"){ bdAudio.pause(); bdAudio.currentTime = 0; } }).catch(function(){}); } catch(e){}
+    }
     var P = bdProg(); P.kiss = Date.now(); save(); saveAnswers({ bdKissAt:P.kiss });
     bd.lipsT = 0; bd.kissT = performance.now();
     $('[data-screen="home"]').classList.add("kissing"); document.body.classList.add("is-kissing");
@@ -2510,6 +2527,7 @@ html.gated, html.gated body{ overflow:hidden; }
       $("#bdKiss").hidden = true;
       $('[data-screen="home"]').classList.add("sunset"); document.body.classList.add("is-sunset");
       $("#bdBack").hidden = false;
+      if (!bdUserOff) bdPlay();                                              // the song starts with the sunset
       playEnding();
     }, instant);
   }
@@ -2595,8 +2613,9 @@ html.gated, html.gated body{ overflow:hidden; }
     bd.bloomT0 = P.flowers ? performance.now() - 30000 : 0;
     bd.swipeT = P.flowers ? -1 : 0;
     if (P.letter) showLetter(true); else $("#bdLetterWrap").hidden = true;
-    if (P.bella){ showBella(true); bdMusicBtn.hidden = !CONFIG.musicSrc || bdBroken; bdMusicUI(!bdAudio.paused); }
+    if (P.bella) showBella(true);
     else { $("#bdHamster").hidden = true; bd.hamT0 = 0; }
+    bdMusicBtn.hidden = !P.sunset || !SONGS.length || bdBroken; bdMusicUI(!bdAudio.paused);
     $("#bdKiss").hidden = true;
     bd.mode = P.sunset ? "sunset" : "main"; bd.sunT = performance.now();
     $('[data-screen="home"]').classList.toggle("sunset", !!P.sunset); document.body.classList.toggle("is-sunset", !!P.sunset);
